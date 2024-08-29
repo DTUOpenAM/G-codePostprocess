@@ -36,6 +36,12 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
     numLayers = regexp(cli_data, layersPattern, 'tokens');
     numLayerCount = str2double(numLayers{1}{1});
 
+    % Add the pattern to extract layer height
+    layerHeightPattern = '\$\$LAYER\/(\d+\.?\d*)';
+    layerHeight = regexp(cli_data, layerHeightPattern, 'tokens');
+    % Extract the second layer height (omit the first layer which is zero)
+    layerHeightValue = str2double(layerHeight{2}{1}) * scalar_multiplier;
+
     pattern1 = machineParameters{1,4}; % Assuming machineParameters holds the pattern values as shown earlier
     pattern2 = machineParameters{2,4};
     dispensingOrder = createDispensingOrder(pattern1, pattern2, numLayerCount);
@@ -68,7 +74,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
 
     % Convert parameter to cell array
     defaultLabel = {'default'};
-    paramCell = [1, {defaultLabel, 0, 0}; processParameters];
+    paramCell = [1, {defaultLabel, 0, 0, 100, 5000}; processParameters];
     
 
     processLabels = label_matches;
@@ -82,12 +88,11 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 
 
                 % Extract the layer height and count it
-                layer_height = str2double(strsplit(seg{1}(7:end), ',')) * scalar_multiplier;
                 gcode_str = gcode_str + sprintf('M10\n');
                 gcode_str = gcode_str + newline;
-                gcode_str = gcode_str + sprintf(';Layer %d [%.3fmm]\n', layer_count, layer_height);
+                gcode_str = gcode_str + sprintf(';Layer %d [%.3fmm]\n', layer_count, layerHeightValue);
                 gcode_str = gcode_str + sprintf('M1 %s\n', machineParameters{dispensingOrder(layer_count),2});
-                gcode_str = gcode_str + sprintf('M2 T%.3f\n', machineParameters{3,4});
+                gcode_str = gcode_str + sprintf('M2 T%.3f\n', layerHeightValue);
                 gcode_str = gcode_str + sprintf('M3\n');
                 gcode_str = gcode_str + newline;
 
@@ -100,6 +105,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 gcode_str = gcode_str + sprintf(';Common Layer Interface (cli) file converted to gcode\n');
                 gcode_str = gcode_str + sprintf(';Original file name: ' + convertCharsToStrings(inputFile) + '\n');
                 gcode_str = gcode_str + sprintf(';Gcode created: ' + string(datetime("today")) + '\n');
+                gcode_str = gcode_str + sprintf(';Layer height: %d \n', layerHeightValue);
                 gcode_str = gcode_str + newline;
                 gcode_str = gcode_str + sprintf(';Scan objects:\n');
                 
@@ -116,6 +122,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 % Print layer one
                 gcode_str = gcode_str + sprintf(';Beginning processing\n');
                 gcode_str = gcode_str + sprintf('M0 P3\n');
+                gcode_str = gcode_str + sprintf('M41\n');
                 gcode_str = gcode_str + sprintf(';Layer %d\n', layer_count);
                 
 
@@ -134,7 +141,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 % Only add the polyline comment if the label number has changed
                 gcode_str = gcode_str + newline;
                 gcode_str = gcode_str + sprintf(';Polyline [Label %d]\n', object_number);
-                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,4});
+                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,6});
 
                 
             end
@@ -143,9 +150,16 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
             % Generate Gcode for the first line segment with D0
             gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f D0\n', x_values(1), y_values(1));
             
-            % Generate Gcode for the subsequent line segments with D100
+            % Generate Gcode for the subsequent line segments with D100, F
             for i = 2:length(x_values)
-                gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f D100\n', x_values(i), y_values(i));
+                if paramCell{object_number, 5} > 0 && paramCell{object_number, 6} > 0
+                    if paramCell{object_number, 5} > 100
+                        errordlg('Duty cycle cannot be over 100%','D error');
+                    end
+                    gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f D%d\n', x_values(i), y_values(i), paramCell{object_number, 5});
+                else
+                    errordlg('Entered non-positive value in D or F','D or F error');
+                end
             end
             
 
@@ -162,7 +176,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 gcode_str = gcode_str + sprintf(';Hatch [Label %d]\n', object_number);
                 %P = processParameters(object_number,1);
                 %F = processParameters(object_number,2);
-                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,4});              
+                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,6});              
 
             end
 
@@ -172,7 +186,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 if mod(i, 2) == 1
                     gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f\n', x_values(i), y_values(i));
                 else
-                    gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f D100\n', x_values(i), y_values(i));
+                    gcode_str = gcode_str + sprintf('G1 X%.4f Y%.4f D%d\n', x_values(i), y_values(i), paramCell{object_number, 5});
                 end
             end
 
@@ -221,18 +235,20 @@ end
 
 
     % Prepare the data for the table
-    tableData = cell(numel(label_matches), 4); % Columns for Label, Power, Feedrate
+    tableData = cell(numel(label_matches), 6); % Columns for Label, Power, Feedrate, Duty Cycle, Frequency
     for i = 1:numel(label_matches)
         tableData{i, 1} = i+1;
         tableData{i, 2} = label_matches{i}{2}; % Label Name
         tableData{i, 3} = 190; % Default Power
         tableData{i, 4} = 750; % Default Feedrate
+        tableData{i, 5} = 100; % Default Duty Cycle
+        tableData{i, 6} = 100000; % Default Frequency
     end
-
+    
     % Create the table in the "Process Parameters" tab
     processTable = uitable(processTab, 'Data', tableData, ...
-                           'ColumnName', {'','Object', 'Power [W]', 'Feedrate [mm/s]'}, ...
-                           'ColumnEditable', [false false true true], ...
+                           'ColumnName', {'', 'Object', 'Power [W]', 'Feedrate [mm/s]', 'Duty Cycle [%]', 'Frequency [Hz]'}, ...
+                           'ColumnEditable', [false false true true true true], ...
                            'RowName', [], ...
                            'Position', [10 50 560 300]);
 
@@ -252,26 +268,24 @@ end
     % Create UI components for "Dispenser 1" and its "Pattern" in the "Machine Settings" tab
     uilabel(machineTab, 'Text', 'Dispenser 1:', 'Position', [10, 300, 100, 22]);
     dispenser1Field = uieditfield(machineTab, 'text', 'Position', [110, 300, 100, 22], 'Value', 'P1 N3');
-
+    
     uilabel(machineTab, 'Text', 'Pattern:', 'Position', [220, 300, 100, 22]);
     pattern1Field = uieditfield(machineTab, 'numeric', 'Position', [320, 300, 100, 22], 'Value', 1);
-
+    
     % Create UI components for "Dispenser 2" and its "Pattern" in the "Machine Settings" tab
     uilabel(machineTab, 'Text', 'Dispenser 2:', 'Position', [10, 250, 100, 22]);
     dispenser2Field = uieditfield(machineTab, 'text', 'Position', [110, 250, 100, 22], 'Value', 'P2 N3');
-
+    
     uilabel(machineTab, 'Text', 'Pattern:', 'Position', [220, 250, 100, 22]);
     pattern2Field = uieditfield(machineTab, 'numeric', 'Position', [320, 250, 100, 22], 'Value', 1);
-
-    uilabel(machineTab, 'Text', 'Layer height [mm]:', 'Position', [10, 60, 150, 22]);
-    layerHeightField = uieditfield(machineTab, 'numeric', 'Position', [170, 60, 100, 22], 'Value', 0.05);
-
+    
     % Checkbox for "Mirror X"
     mirrorXCheckbox = uicheckbox(machineTab, 'Text', 'Mirror X', 'Position', [10, 200, 100, 22]);
     mirrorXCheckbox.Value = true;  % Set "Mirror X" to be checked by default
     
     % Checkbox for "Mirror Y"
     mirrorYCheckbox = uicheckbox(machineTab, 'Text', 'Mirror Y', 'Position', [10, 170, 100, 22]);
+
 
 
     % Create submit button
@@ -289,19 +303,23 @@ end
      function onSubmit()
         % Get the data from the process parameters table
         processParameters = processTable.Data;
-
+    
         % Get the machine settings, including the new fields
-        machineParameters = {'Dispenser1', dispenser1Field.Value, 'Pattern1', pattern1Field.Value; 
-                             'Dispenser2', dispenser2Field.Value, 'Pattern2', pattern2Field.Value; 
-                             'MultiMat', 0, 'LayerHeight', layerHeightField.Value, 
-                             };
+        % Ensure each row has exactly four columns
+        machineParameters = {
+            'Dispenser1', dispenser1Field.Value, 'Pattern1', pattern1Field.Value; 
+            'Dispenser2', dispenser2Field.Value, 'Pattern2', pattern2Field.Value; 
+            'MultiMat', 0, '', '';  % Add empty strings to ensure the row has 4 elements
+        };
+    
         % Retrieve the checkbox states
         mirrorX = mirrorXCheckbox.Value;
         mirrorY = mirrorYCheckbox.Value;
-
+    
         % Close the figure
         delete(fig);
-     end
+    end
+
 end
 
 
