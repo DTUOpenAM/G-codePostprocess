@@ -105,7 +105,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 gcode_str = gcode_str + sprintf(';Common Layer Interface (cli) file converted to gcode\n');
                 gcode_str = gcode_str + sprintf(';Original file name: ' + convertCharsToStrings(inputFile) + '\n');
                 gcode_str = gcode_str + sprintf(';Gcode created: ' + string(datetime("today")) + '\n');
-                gcode_str = gcode_str + sprintf(';Layer height: %d \n', layerHeightValue);
+                gcode_str = gcode_str + sprintf(';Layer height: %0.3f \n', layerHeightValue);
                 gcode_str = gcode_str + newline;
                 gcode_str = gcode_str + sprintf(';Scan objects:\n');
                 
@@ -141,10 +141,11 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 % Only add the polyline comment if the label number has changed
                 gcode_str = gcode_str + newline;
                 gcode_str = gcode_str + sprintf(';Polyline [Label %d]\n', object_number);
-                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,6});
+                gcode_str = gcode_str + sprintf('G1 P%d F%d H%d\n', paramCell{object_number,3}, paramCell{object_number,4}, paramCell{object_number,6});
 
                 
             end
+
 
             lastLabelNumber = object_number; % Update the last label number processed
             % Generate Gcode for the first line segment with D0
@@ -176,7 +177,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
                 gcode_str = gcode_str + sprintf(';Hatch [Label %d]\n', object_number);
                 %P = processParameters(object_number,1);
                 %F = processParameters(object_number,2);
-                gcode_str = gcode_str + sprintf('G1 P%d F%d\n', paramCell{object_number,3}, paramCell{object_number,6});              
+                gcode_str = gcode_str + sprintf('G1 P%d F%d H%d\n', paramCell{object_number,3}, paramCell{object_number,4}, paramCell{object_number,6});              
 
             end
 
