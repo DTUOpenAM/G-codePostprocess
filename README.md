@@ -23,3 +23,15 @@ the build plate for easier alignment.
 
 <p align="center"><img src="misc/NetfabbIntro_v0.jpg" height="400" alt="Netfabb screenshot" /></p>
 <h3 align="center">Netfabb LOOP build plate</h3>
+
+
+## Using the post-processor
+
+The post-processor is written in Matlab, and will in the foreseeable future be rewritten in Python and/or be integrated directly into the system software.
+
+1. Run the script and select you CLI file. 
+2. Select parameters per scan object. To select process parameters per scan object, they must be labeled according to the CLI standard.
+3. Select machine paramters
+4. Hit submit and wait for processing
+
+The result is a folder and .zip folder containing the job file. Currently, each layer is exported in their own .txt and the next layer is explicitly loaded in the last line.
