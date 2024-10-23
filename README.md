@@ -42,6 +42,8 @@ the "LOOP_NoBuild.3MF” you saved previously.
 
 The post-processor is written in Matlab, and will in the foreseeable future be rewritten in Python and/or be integrated directly into the system software.
 
+cli2gcode_MultiLayerParRecoNoJump.m is the newest version for LOOP2
+
 1. Run the script and select you CLI file. 
 2. Select parameters per scan object. To select process parameters per scan object, they must be labeled according to the CLI standard.
 3. Select machine paramters
