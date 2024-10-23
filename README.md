@@ -16,7 +16,25 @@ the "LOOP_NoBuild.3MF” you saved previously.
 
 
 
-<p align="center"><img src="misc/NetfabbIntro_v0.jpg" height="400" alt="Netfabb screenshot" /></p>
+<p align="center"><img src="misc/Start.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/Add machine.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/Edit machine.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/No Build Zone.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/Result build plate.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/Select build plate.png" height="400" alt="Netfabb screenshot" /></p>
+<h3 align="center">Netfabb LOOP build plate</h3>
+
+<p align="center"><img src="misc/Finished.png" height="400" alt="Netfabb screenshot" /></p>
 <h3 align="center">Netfabb LOOP build plate</h3>
 
 
