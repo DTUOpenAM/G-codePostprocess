@@ -42,11 +42,28 @@ the "LOOP_NoBuild.3MF” you saved previously.
 
 The post-processor is written in Matlab, and will in the foreseeable future be rewritten in Python and/or be integrated directly into the system software.
 
-cli2gcode_MultiLayerParRecoNoJump.m is the newest version for LOOP2
+cli2gcode_LOOP2.m is the newest version for LOOP2
 
 1. Run the script and select you CLI file. 
 2. Select parameters per scan object. To select process parameters per scan object, they must be labeled according to the CLI standard.
+     The table now includes an “Active” checkbox column (on by default) so that individual objects can be disabled. If an object is turned off, its associated segments are skipped during processing.
+     Two new numeric fields (Start Layer and Stop Layer) have been added in the Process Parameters tab. This lets the user select a specific layer range to process, rather than processing all layers.
 3. Select machine paramters
-4. Hit submit and wait for processing
+      The dispenser settings table (in the Machine Settings tab) has been expanded to include four columns:
+        Start Layer
+        Base Dose
+        Pattern Period (e.g., every 4 layers)
+        Pattern Dose
+      This lets you specify that on layers matching the period, a different dosing value (in increments, e.g. every 4 layers) is used.
+4. A new Advanced tab was added with controls for:
+      Galvo Speed Scale Factor
+      Recoater Movement (distance)
+      Build Piston Retraction
+      Crossflow Fan setting
+      VFD setting
+      Oxygen setting
+      Jump Speed
+      Recoater Homing Interval
+5. Hit submit and wait for processing
 
 The result is a folder and .zip folder containing the job file. Currently, each layer is exported in their own .txt and the next layer is explicitly loaded in the last line.
