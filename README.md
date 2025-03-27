@@ -45,10 +45,8 @@ The post-processor is written in Matlab, and will in the foreseeable future be r
 cli2gcode_LOOP2.m is the newest version for LOOP2
 
 1. Run the script and select you CLI file. 
-2. Select parameters per scan object. To select process parameters per scan object, they must be labeled according to the CLI standard.
-     The table now includes an “Active” checkbox column (on by default) so that individual objects can be disabled. If an object is turned off, its associated segments are skipped during processing.
-     Two new numeric fields (Start Layer and Stop Layer) have been added in the Process Parameters tab. This lets the user select a specific layer range to process, rather than processing all layers.
-3. Select machine paramters
+2. Select parameters per scan object. To select process parameters per scan object, they must be labeled according to the CLI standard. The table now includes an “Active” checkbox column (on by default) so that individual objects can be disabled. If an object is turned off, its associated segments are skipped during processing. Two new numeric fields (Start Layer and Stop Layer) have been added in the Process Parameters tab. This lets the user select a specific layer range to process, rather than processing all layers.
+3. Select machine paramters:
       The dispenser settings table (in the Machine Settings tab) has been expanded to include four columns:
         Start Layer,
         Base Dose,
