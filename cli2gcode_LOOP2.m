@@ -128,9 +128,9 @@ function processcli(inputFile, processParameters, machineParameters, mirrorX, mi
             gcode_str = [gcode_str sprintf('movedosingby %d\n', currentDispenserValue)];
         
         elseif layer_count == 1
-            gcode_str = [gcode_str sprintf('setcrossflowfanspeed %0.0f\n', 65536 * advancedParams.crossflowSetting / 100)];
+            gcode_str = [gcode_str sprintf('setcrossflowfanspeed %d\n', 65536 * advancedParams.crossflowSetting / 100)];
             gcode_str = [gcode_str sprintf('setvfdspeed %d\n', advancedParams.VFDsetting)];
-            gcode_str = [gcode_str sprintf('setoxygenlevel %f0.1\n', advancedParams.oxygenSetting)];
+            gcode_str = [gcode_str sprintf('setoxygenlevel %.1f\n', advancedParams.oxygenSetting)];
         end
 
 
@@ -271,7 +271,7 @@ end
 % Function to save the current layer G-code to its own file
 function save_layer_file(layer_num, gcode_data, baseFileName, folderPath, numLayerCount)
     % Create the filename for the current layer inside the folder
-    layer_filename = fullfile(folderPath, sprintf('%s_layer-%d.txt', baseFileName, layer_num));
+    layer_filename = fullfile(folderPath, sprintf('%s-layer%d.txt', baseFileName, layer_num));
 
     % Open file and write G-code
     fileID = fopen(layer_filename, 'w');
@@ -279,7 +279,7 @@ function save_layer_file(layer_num, gcode_data, baseFileName, folderPath, numLay
 
     % If this is not the final layer, append the reference to the next layer
     if layer_num < numLayerCount
-        next_layer_filename = sprintf('read %s_layer-%d.txt', baseFileName, layer_num + 1);
+        next_layer_filename = sprintf('read %s-layer%d.txt', baseFileName, layer_num + 1);
         fprintf(fileID, '%s', next_layer_filename);
     end
 
@@ -339,14 +339,17 @@ function [processParameters, machineParameters, label_matches, mirrorX, mirrorY,
         'The Machine Settings contain dosing and layer height information. ' ...
         'When finished, press Submit and a gcode will be created.'];
     uilabel(processTab, 'Text', instructionTextProcess, 'Position', [10, 450, 660, 100], 'HorizontalAlignment', 'center', 'WordWrap', 'on');
+    
+    powderVolume = (250^2*pi/4)*(totalLayers*layerHeight/1000)/1000000;
 
     % Create a metadata string
     metadataText = sprintf(['Filename: %s\n', ...
                         'Layer Height: %d microns\n', ...
                         'Total Layers: %d\n', ...
+                        'The Build Volume is %.3fL\n', ...
                         'Printer: LOOP2\n', ...
                         'Post Processor Version: v3.0'], ...
-                        cli_filename, layerHeight, totalLayers);
+                        cli_filename, layerHeight, totalLayers, powderVolume);
                     
     % Create a panel on the right side of the Process Parameters tab for metadata
     % Adjust the Position: [left, bottom, width, height]
