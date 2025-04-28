@@ -90,8 +90,8 @@ function processcli(inputFile, processParameters, machineParameters, mirrorX, mi
     dummySlowSpeed = 5816;     % very slow galvo speed (units/sec)
     
 
-    maxGalvoX = 29082;
-    minGalvoX = -29082;
+    maxGalvoX = 59164;
+    minGalvoX = 1000;
 
     % Parallel processing of layers using parfor
     parfor layer_count = processingRange(1):processingRange(2)
