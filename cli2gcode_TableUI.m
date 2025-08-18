@@ -1,6 +1,7 @@
 clear    
 
 
+
 [inputFile,path] = uigetfile('*.cli');
 if isequal(inputFile,0)
    disp('User selected Cancel');
@@ -194,6 +195,7 @@ gcode = processcli(inputFile, processParameters, machineParameters, label_matche
         elseif startsWith(seg{1}, 'GEOMETRYEND')
 
                 gcode_str = gcode_str + newline;
+                gcode_str = gcode_str + sprintf('M10\n');
                 gcode_str = gcode_str + sprintf(';End of Gcode.\n');
                 gcode_str = gcode_str + sprintf(';Shutting down:\n');
                 gcode_str = gcode_str + sprintf('P4 F0\n');
@@ -210,8 +212,31 @@ end
 
 
     function [processParameters, machineParameters, label_matches, mirrorX, mirrorY] = custom_cli_input(cli_filename)
+    
+    SoftwareVersion = 1.1;
+    
     % Read file content
     file_content = fileread(cli_filename);
+
+        % --- Metadata from CLI (UNITS, LAYERS, LAYER-height) ---
+    unitsPattern  = '\$\$UNITS\/(\d+\.?\d*)';
+    layersPattern = '\$\$LAYERS\/(\d+\.?\d*)';
+    heightPattern = '\$\$LAYER\/(\d+\.?\d*)';
+
+    unitsTok   = regexp(file_content, unitsPattern, 'tokens');
+    layersTok  = regexp(file_content, layersPattern, 'tokens');
+    heightsTok = regexp(file_content, heightPattern, 'tokens');
+
+    scalar_multiplier = str2double(unitsTok{1}{1});
+    totalLayers       = str2double(layersTok{1}{1});
+
+    if numel(heightsTok) >= 2
+        layerHeight_m = (str2double(heightsTok{2}{1}) - str2double(heightsTok{1}{1})) * scalar_multiplier * 1000;
+    else
+        layerHeight_m = NaN;
+    end
+    layerHeight_um = round(layerHeight_m);              % µm
+    volume = ((250^2*pi/4) * (totalLayers-2) * layerHeight_m/1000)/1000000;   % L
 
     % Extract labels and their names
     label_matches = regexp(file_content, '\$\$LABEL/(\d+),([^,\n\r]+)', 'tokens');
@@ -252,6 +277,114 @@ end
                            'ColumnEditable', [false false true true true true], ...
                            'RowName', [], ...
                            'Position', [10 50 560 300]);
+
+        % --- Excel roundtrip (kun ProcessParameters) ---
+    lastExcelPath = pwd;
+    lastExcelFile = fullfile(lastExcelPath, 'process_params.xlsx');
+
+    uibutton(processTab,'Text','Export to Excel', ...
+        'Position',[10, 10, 120, 30], ...
+        'ButtonPushedFcn', @(~,~) exportToExcelCb());
+
+    uibutton(processTab,'Text','Open in Excel', ...
+        'Position',[140, 10, 120, 30], ...
+        'ButtonPushedFcn', @(~,~) openInExcelCb());
+
+    uibutton(processTab,'Text','Import from Excel', ...
+        'Position',[270, 10, 140, 30], ...
+        'ButtonPushedFcn', @(~,~) importFromExcelCb());
+
+        % ---------- Helpers: ProcessParameters <-> Excel ----------
+    function exportToExcelCb()
+        T = processTableToTable(processTable);
+        [f,p] = uiputfile('*.xlsx','Save Process Parameters as', lastExcelFile);
+        if isequal(f,0); return; end
+        lastExcelFile = fullfile(p,f); lastExcelPath = p;
+
+        writetable(T, lastExcelFile, 'Sheet','ProcessParameters');
+        uialert(fig, sprintf('Saved:\n%s', lastExcelFile), 'Export OK', 'Icon','success');
+
+        % åbne automatisk? fjern % for auto-open:
+        % openInExcelCb();
+    end
+
+    function openInExcelCb()
+        if ~isfile(lastExcelFile)
+            uialert(fig,'No Excel file yet. Do an export first.','Open in Excel');
+            return;
+        end
+        if ispc
+            winopen(lastExcelFile);
+        elseif ismac
+            system(sprintf('open "%s" &', lastExcelFile));
+        else
+            system(sprintf('xdg-open "%s" &', lastExcelFile));
+        end
+    end
+
+    function importFromExcelCb()
+        [f,p] = uigetfile('*.xlsx','Select edited Excel', lastExcelPath);
+        if isequal(f,0); return; end
+        xfile = fullfile(p,f);
+        try
+            T = readtable(xfile, 'Sheet','ProcessParameters');
+        catch
+            uialert(fig,'Could not read sheet "ProcessParameters".','Import error','Icon','error');
+            return;
+        end
+
+        % Forventede kolonner (uden "Active"/"CrossFlow" her)
+        required = {'Index','Object','Power_W','Feedrate_mm_s','DutyCycle_pct','Frequency_Hz'};
+        missing = setdiff(required, T.Properties.VariableNames);
+        if ~isempty(missing)
+            uialert(fig, sprintf('Missing columns:\n%s', strjoin(missing, ', ')), ...
+                'Import error','Icon','error');
+            return;
+        end
+
+        % Type-casting
+        T.Index           = double(T.Index);
+        T.Object          = string(T.Object);
+        T.Power_W         = double(T.Power_W);
+        T.Feedrate_mm_s   = double(T.Feedrate_mm_s);
+        T.DutyCycle_pct   = double(T.DutyCycle_pct);
+        T.Frequency_Hz    = double(T.Frequency_Hz);
+
+        % Skriv tilbage til UI (samme struktur som din tabel)
+        processTable.Data = [ ...
+            num2cell(T.Index), cellstr(T.Object), ...
+            num2cell(T.Power_W), num2cell(T.Feedrate_mm_s), ...
+            num2cell(T.DutyCycle_pct), num2cell(T.Frequency_Hz) ];
+
+        uialert(fig, 'Imported edited values from Excel.', 'Import OK', 'Icon','success');
+    end
+
+    function T = processTableToTable(ut)
+        % Konverter processTable.Data til typed table med faste kolonnenavne
+        D = ut.Data;
+        idx  = double([D{:,1}].');
+        obj  = string(D(:,2));
+        pwr  = double([D{:,3}].');
+        fr   = double([D{:,4}].');
+        duty = double([D{:,5}].');
+        freq = double([D{:,6}].');
+
+        T = table(idx, obj, pwr, fr, duty, freq, ...
+            'VariableNames', {'Index','Object','Power_W','Feedrate_mm_s','DutyCycle_pct','Frequency_Hz'});
+    end
+        % --- Info-boks til højre for tabellen ---
+    metaStr = sprintf(['Filename: %s\n', ...
+                       'Layer Height: %d µm\n', ...
+                       'Total Layers: %d\n', ...
+                       'Build volume: %.1f L\n', ...
+                       'Software version: %.1f'], ...
+                       cli_filename, layerHeight_um, totalLayers, volume, SoftwareVersion);
+
+
+    % Justér bredde/højde så den står til højre for tabellen (din tabel er 560 px bred)
+    metaPanel = uipanel(processTab, 'Title','Print Metadata', 'Position',[580, 200, 90, 250]);
+    uilabel(metaPanel, 'Text', metaStr, 'Position',[5, -20, 80, 250], ...
+        'HorizontalAlignment','left','VerticalAlignment','top','WordWrap','on');
 
     % Create the "Machine Settings" tab
     machineTab = uitab(tgroup, 'Title', 'Machine Settings');
