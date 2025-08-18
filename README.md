@@ -23,3 +23,55 @@ the build plate for easier alignment.
 
 <p align="center"><img src="misc/NetfabbIntro_v0.jpg" height="400" alt="Netfabb screenshot" /></p>
 <h3 align="center">Netfabb LOOP build plate</h3>
+
+
+## Using the matlab script
+
+### CLI → G-Code Converter for Open-Source LPBF
+
+This MATLAB script converts Common Layer Interface (CLI) files into G-Code for an open-source Laser Powder Bed Fusion (LPBF) machine.
+It provides a graphical interface for defining process parameters, machine settings, and exporting/importing settings via Excel.
+
+
+Features
+	•	CLI File Import
+      Select a .cli file through a dialog and automatically parse metadata (units, layers, labels, heights).
+	•	Interactive GUI
+	•	Process Parameters Tab
+Define per-object settings such as:
+	•	Power [W]
+	•	Feedrate [mm/s]
+	•	Duty Cycle [%]
+	•	Frequency [Hz]
+	•	Active/inactive state
+You can also export/import process parameters via Excel for bulk editing.
+	•	Machine Settings Tab
+
+⸻
+
+How to Use
+	1.	Run the Script cli2gcode_TableUI.m
+	2.	Select CLI File
+      A file dialog will open — choose your .cli file.
+	3.	Configure Parameters
+	•	Use the Process Parameters tab to set scan object parameters.
+	•	Use the Machine Settings tab to configure dispenser behavior and mirroring.
+	4.	(Optional) Excel Workflow
+	•	Click Export Table to save parameters to an .xlsx file.
+	•	Open in Excel, edit values, save.
+	•	Use Import Table to reload into the GUI.
+	5.	Generate G-Code
+	•	Click Submit in the GUI.
+	•	A .g file will be created in the working directory.
+
+⸻
+
+Output
+	•	G-Code file: <inputfilename>.g
+	•	Contains layer-by-layer instructions and metadata.
+	•	Comments document CLI file source, object labels, and processing parameters.
+
+⸻
+
+Requirements
+	•	MATLAB R2020b or later
