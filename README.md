@@ -1,5 +1,11 @@
 # Netfabb Gcode PostProcess Setup and Guide
 
+## Video guide on how to use Netfabb
+
+[Long form video with explanations](https://youtu.be/FxpjPpwCZX0)
+
+[Short refresher](https://youtu.be/K0dDep0qnoI)
+
 ## Setting up Netfabb
 
 1. Download the 3MF file from the post-processors
